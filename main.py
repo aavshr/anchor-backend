@@ -1,34 +1,29 @@
 from deta import Deta
-from fastapi import FastAPI 
-from pydantic import BaseModel
-from fastapi.middleware.cors import CORSMiddleware
+from flask import Flask, request 
+from flask_cors import CORS
 
-app = FastAPI()
-deta = Deta()
-db = deta.Base("anchor")
+app = Flask(__name__) 
+cors = CORS(app)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins = ["*"]
-)
-
-class Anchor(BaseModel):
-    anchor_id: str
-    html: str
-
-@app.get("/")
+@app.route("/")
 def index():
     return "ok"
 
-@app.get("/v1/anchors/{anchor_id}")
+@app.route("/v1/anchors/<anchor_id>", methods = ["GET"])
 def get_anchor(anchor_id: str):
+    deta = Deta()
+    db = deta.Base("anchor")
     item = db.get(anchor_id)
+    if (not item):
+        return "not found", 404
     return item["html"]
 
-@app.post("/v1/anchors", status_code=201)
-def post_anchor(anchor: Anchor):
+@app.route("/v1/anchors", methods = ["POST"])
+def post_anchor():
+    deta = Deta()
+    db = deta.Base("anchor")
     db.put({
-        "key": anchor.anchor_id,
-        "html": anchor.html
+        "key": request.json["anchor_id"],
+        "html": request.json["html"] 
     })
-    return "created" 
+    return "created", 201 
